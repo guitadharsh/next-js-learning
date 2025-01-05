@@ -9,11 +9,11 @@ const JWT_SECRET = 'adharsh-is-great!';
 const ACCESS_TOKEN_EXPIRES_IN = '5m'; // Access token expiration time
 const REFRESH_TOKEN_EXPIRES_IN = '10m'; // Refresh token expiration time
 
-// Simulated user data with passwords
+// Simulated user data with email and passwords
 const users = [
-  { userId: 1, name: 'Alice', password: 'psd1' },
-  { userId: 2, name: 'Bob', password: 'psd2' },
-  { userId: 3, name: 'Charlie', password: 'psd3' }
+  { userId: 1, name: 'Alice', email: 'alice@example.com', password: 'psd1' },
+  { userId: 2, name: 'Bob', email: 'bob@example.com', password: 'psd2' },
+  { userId: 3, name: 'Charlie', email: 'charlie@example.com', password: 'psd3' }
 ];
 
 // Mock database for refresh tokens
@@ -24,10 +24,16 @@ app.use(express.json());
 
 // LOGIN API: Returns accessToken and refreshToken
 app.post('/login', (req, res) => {
-  const { userId, password } = req.body;
+  const { userId, email, password } = req.body;
 
-  const user = users.find((u) => u.userId === userId && u.password === password);
-  if (!user) return res.status(401).json({ message: 'Invalid user ID or password' });
+  // Find user by userId or email and validate password
+  const user = users.find(
+    (u) =>
+      ((userId && u.userId === userId) || (email && u.email === email)) &&
+      u.password === password
+  );
+
+  if (!user) return res.status(401).json({ message: 'Invalid user ID, email, or password' });
 
   const accessToken = jwt.sign({ userId: user.userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
   const refreshToken = jwt.sign({ userId: user.userId }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES_IN });
@@ -35,9 +41,15 @@ app.post('/login', (req, res) => {
   // Store the refresh token in the mock database
   refreshTokens[user.userId] = refreshToken;
 
+  // Get the expiry time in seconds
+  const accessTokenExpiryTime = Math.floor(Date.now() / 1000) + 5 * 60; // 5 minutes for access token
+  const refreshTokenExpiryTime = Math.floor(Date.now() / 1000) + 10 * 60; // 10 minutes for refresh token
+
   res.json({
     accessToken,
-    refreshToken
+    accessTokenExpiryTime,
+    refreshToken,
+    refreshTokenExpiryTime
   });
 });
 
@@ -63,7 +75,7 @@ app.get('/getuserdetails/:userId', (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found' });
 
   // Return user details
-  res.json({ userId: user.userId, name: user.name });
+  res.json({ userId: user.userId, name: user.name, email: user.email });
 });
 
 // REFRESH TOKEN API: Provides a new access token using refresh token
