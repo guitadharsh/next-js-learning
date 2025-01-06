@@ -24,6 +24,7 @@ app.use(express.json());
 
 // LOGIN API: Returns accessToken and refreshToken
 app.post('/login', (req, res) => {
+  console.log("api hitting...")
   const { userId, email, password } = req.body;
 
   // Find user by userId or email and validate password
