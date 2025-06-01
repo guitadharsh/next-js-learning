@@ -25,6 +25,26 @@ const nextAuth = NextAuth({
     session: {
         strategy: "jwt"
     },
+    callbacks: {
+        async jwt({ token, user, trigger, session }) {
+            if (user) {
+                token.id = user.email;
+                token.email = user.email;
+            }
+
+            if (trigger === "update" && session) {
+                token.email = session?.email
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            if (token) {
+                session.user.id = token.id;
+                session.user.email = token.email;
+            }
+            return session;
+        },
+    },
     secret: 'secret-key'
 })
 
